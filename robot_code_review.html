@@ -1,0 +1,189 @@
+
+<style>
+  body { margin: 0; padding: 0; }
+  .wrap { padding: 1rem 0; font-family: var(--font-sans); color: var(--color-text-primary); }
+  .file-header { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: .06em; margin: 1.4rem 0 .5rem; padding-bottom: .3rem; border-bottom: 1px solid var(--color-border-tertiary); }
+  .file-header:first-child { margin-top: 0; }
+  .bug { display: flex; gap: 10px; align-items: flex-start; padding: .55rem .7rem; border-radius: var(--border-radius-md); margin-bottom: .45rem; font-size: 14px; line-height: 1.5; }
+  .bug-sev { font-size: 11px; font-weight: 500; padding: 2px 7px; border-radius: 20px; white-space: nowrap; margin-top: 2px; flex-shrink: 0; }
+  .sev-crash  { background:#FCEBEB; color:#A32D2D; }
+  .sev-logic  { background:#FAEEDA; color:#854F0B; }
+  .sev-minor  { background:#EAF3DE; color:#3B6D11; }
+  .dark .sev-crash  { background:#501313; color:#F7C1C1; }
+  .dark .sev-logic  { background:#412402; color:#FAC775; }
+  .dark .sev-minor  { background:#173404; color:#C0DD97; }
+  .bug-body { flex: 1; }
+  .bug-title { font-weight: 500; margin-bottom: 2px; }
+  .bug-desc { color: var(--color-text-secondary); font-size: 13px; }
+  code { font-family: var(--font-mono); font-size: 12px; background: var(--color-background-secondary); padding: 1px 5px; border-radius: 4px; border: 1px solid var(--color-border-tertiary); }
+  .legend { display: flex; gap: 12px; margin-bottom: 1rem; font-size: 12px; align-items: center; }
+  .legend span { display: flex; align-items: center; gap: 5px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .d-crash { background:#E24B4A; }
+  .d-logic { background:#BA7517; }
+  .d-minor { background:#639922; }
+</style>
+<div class="wrap" id="root">
+  <div class="legend">
+    <span><span class="dot d-crash"></span>Crash / will break</span>
+    <span><span class="dot d-logic"></span>Logic error</span>
+    <span><span class="dot d-minor"></span>Minor / improvement</span>
+  </div>
+
+  <div class="file-header">Vision.py</div>
+
+  <div class="bug">
+    <span class="bug-sev sev-crash">CRASH</span>
+    <div class="bug-body">
+      <div class="bug-title">Variable shadowing crash in <code>alignToTarget()</code></div>
+      <div class="bug-desc">You pass in <code>target</code> as a parameter, then immediately re-assign <code>target = None</code> inside the loop. Then you do <code>if m.id == target.id</code> — but <code>target</code> is now <code>None</code>, so <code>target.id</code> throws <code>AttributeError</code> on the very first iteration.</div>
+    </div>
+  </div>
+
+  <div class="bug">
+    <span class="bug-sev sev-crash">CRASH</span>
+    <div class="bug-body">
+      <div class="bug-title">Circular import — <code>Vision.py</code> imports from <code>robot.py</code></div>
+      <div class="bug-desc"><code>from robot import moveWithChecks</code> at the top of Vision.py. But <code>robot.py</code> imports from <code>Vision.py</code>. Python will hit a circular import error and refuse to start. Move <code>moveWithChecks</code> to <code>Movement.py</code> instead.</div>
+    </div>
+  </div>
+
+  <div class="bug">
+    <span class="bug-sev sev-crash">CRASH</span>
+    <div class="bug-body">
+      <div class="bug-title"><code>findTargetMarker()</code> crashes when no acid markers visible</div>
+      <div class="bug-desc"><code>distances</code> will be an empty list if no markers with IDs 100–139 are in view. Calling <code>min([])</code> raises <code>ValueError</code>. Add a guard: <code>if not distances: return None</code>.</div>
+    </div>
+  </div>
+
+  <div class="bug">
+    <span class="bug-sev sev-crash">CRASH</span>
+    <div class="bug-body">
+      <div class="bug-title"><code>findNextMarker360()</code> returns a <code>Marker</code> object to <code>min()</code></div>
+      <div class="bug-desc"><code>closeMarker</code> is a list of <code>Marker</code> objects. <code>min(closeMarker)</code> will fail because <code>Marker</code> objects aren't comparable with <code>&lt;</code>. You probably want <code>min(closeMarker, key=lambda m: m.position.distance)</code>.</div>
+    </div>
+  </div>
+
+  <div class="bug">
+    <span class="bug-sev sev-crash">CRASH</span>
+    <div class="bug-body">
+      <div class="bug-title"><code>returnToHome()</code> — <code>alignToTarget()</code> called with an ID, not a Marker object</div>
+      <div class="bug-desc">Line: <code>alignToTarget(robot, curr_home_id)</code> — you pass the integer ID. But <code>alignToTarget</code> immediately does <code>target.id</code>, which fails on an int. Pass the full marker object, or look it up first.</div>
+    </div>
+  </div>
+
+  <div class="bug">
+    <span class="bug-sev sev-logic">LOGIC</span>
+    <div class="bug-body">
+      <div class="bug-title"><code>horDistCalculate()</code> — units mismatch, will give wrong distance</div>
+      <div class="bug-desc"><code>targetMarker.position.distance</code> is in mm. You square it, subtract <code>CAMHEIGHT**2</code> (which is in metres — 0.12), then divide by 1000. You're mixing mm² and m². Either use mm throughout, or convert distance to metres first: <code>dist_m = targetMarker.position.distance / 1000</code>, then <code>math.sqrt(dist_m**2 - CAMHEIGHT**2)</code>.</div>
+    </div>
+  </div>
+
+  <div class="bug">
+    <span class="bug-sev sev-logic">LOGIC</span>
+    <div class="bug-body">
+      <div class="bug-title"><code>returnToHome()</code> — <code>homeM</code> may be unbound</div>
+      <div class="bug-desc">If the <code>for m in markers</code> loop finds no match, <code>homeM</code> is never assigned, and the <code>if homeM:</code> check below throws <code>UnboundLocalError</code>. Initialise it: <code>homeM = None</code> before the loop.</div>
+    </div>
+  </div>
+
+  <div class="bug">
+    <span class="bug-sev sev-logic">LOGIC</span>
+    <div class="bug-body">
+      <div class="bug-title"><code>returnToHome()</code> — distance threshold is in metres but check uses 150</div>
+      <div class="bug-desc"><code>dist = horDistCalculate(...)</code> returns metres. Then <code>if dist &lt; 150</code> — that's 150 metres. You almost certainly mean <code>0.15</code> (150mm / 15cm).</div>
+    </div>
+  </div>
+
+  <div class="bug">
+    <span class="bug-sev sev-logic">LOGIC</span>
+    <div class="bug-body">
+      <div class="bug-title"><code>STEPS_PER_DEGREE</code> not imported in Vision.py</div>
+      <div class="bug-desc"><code>convertAngToSteps()</code> uses <code>STEPS_PER_DEGREE</code>, but Vision.py only defines <code>CAMHEIGHT</code>. It doesn't import <code>STEPS_PER_DEGREE</code> from anywhere. It'll raise <code>NameError</code> at runtime.</div>
+    </div>
+  </div>
+
+  <div class="file-header">Movement.py</div>
+
+  <div class="bug">
+    <span class="bug-sev sev-crash">CRASH</span>
+    <div class="bug-body">
+      <div class="bug-title"><code>stepMotorsRotateAntiClockwise()</code> — wrong comparison operator in while condition</div>
+      <div class="bug-desc">The condition is <code>originalStep1 - int(robot.arduino.command("t")) >= steps</code> — uses <code>&gt;=</code> instead of <code>&lt;=</code>. This means the while loop exits immediately (since the difference starts at 0, which is not ≥ steps). The motor starts but the loop never waits. Compare with the clockwise version — it uses <code>&lt;=</code>.</div>
+    </div>
+  </div>
+
+  <div class="bug">
+    <span class="bug-sev sev-crash">CRASH</span>
+    <div class="bug-body">
+      <div class="bug-title"><code>stepMotor1Clockwise()</code> — motor set to wrong direction</div>
+      <div class="bug-desc">Power is set to <code>+1</code>, same as <code>stepMotor1AntiClockwise()</code>. It should be <code>-1</code> for clockwise. The encoder check is correct (measures decreasing steps), but the motor will spin the wrong way.</div>
+    </div>
+  </div>
+
+  <div class="bug">
+    <span class="bug-sev sev-logic">LOGIC</span>
+    <div class="bug-body">
+      <div class="bug-title">Tight busy-loops with no sleep will starve the SR runtime</div>
+      <div class="bug-desc">All motor step functions poll <code>robot.arduino.command()</code> in tight <code>while</code> loops with no <code>robot.sleep()</code>. This blocks Python and may interfere with the SR OS. Add a small <code>robot.sleep(0.01)</code> inside each loop.</div>
+    </div>
+  </div>
+
+  <div class="file-header">robot.py</div>
+
+  <div class="bug">
+    <span class="bug-sev sev-crash">CRASH</span>
+    <div class="bug-body">
+      <div class="bug-title"><code>mechanismOpen/Close</code> called with wrong argument order</div>
+      <div class="bug-desc">In <code>robot.py</code>, calls are <code>mechanismOpen(servo1, servo2, robot)</code>. But in <code>Mechanism.py</code> the signature is <code>def mechanismOpen(robot, servo1, servo2)</code>. The arguments are in the wrong order — <code>servo1</code> gets passed as <code>robot</code>. Swap to <code>mechanismOpen(robot, servo1, servo2)</code>.</div>
+    </div>
+  </div>
+
+  <div class="bug">
+    <span class="bug-sev sev-logic">LOGIC</span>
+    <div class="bug-body">
+      <div class="bug-title"><code>visionMvnmtTest2()</code> — subtracts 100 from a distance in metres</div>
+      <div class="bug-desc"><code>moveWithChecks(robot, dist - 100, target.id)</code> — <code>dist</code> is in metres (e.g. 1.5). Subtracting 100 gives a large negative number, so the robot will try to drive backwards hundreds of metres in steps. Probably meant <code>dist - 0.1</code> to stop 10cm short.</div>
+    </div>
+  </div>
+
+  <div class="bug">
+    <span class="bug-sev sev-logic">LOGIC</span>
+    <div class="bug-body">
+      <div class="bug-title"><code>STEPS_PER_MM</code> and <code>CAMHEIGHT</code> are redefined across files with different units</div>
+      <div class="bug-desc"><code>robot.py</code>: <code>CAMHEIGHT = 0.12</code> (metres). <code>Movement.py</code>: <code>CAMHEIGHT = 120</code> (mm). If any function picks up the wrong one via import, distance calculations will be off by a factor of 1000. Define constants once in a single <code>constants.py</code> and import from there.</div>
+    </div>
+  </div>
+
+  <div class="bug">
+    <span class="bug-sev sev-minor">MINOR</span>
+    <div class="bug-body">
+      <div class="bug-title"><code>initialise()</code> is never called, and <code>collecting</code> is local</div>
+      <div class="bug-desc">The function is defined but never invoked. Also, <code>collecting = "acid"</code> is a local variable that disappears when the function returns — probably intended to be returned or stored as a global.</div>
+    </div>
+  </div>
+
+  <div class="file-header">Mechanism.py</div>
+
+  <div class="bug">
+    <span class="bug-sev sev-minor">MINOR</span>
+    <div class="bug-body">
+      <div class="bug-title"><code>mechanismOpen()</code> sets position to <code>-0</code></div>
+      <div class="bug-desc"><code>servo1.position = -0</code> is just <code>0</code> in Python. Probably meant <code>-1</code> to fully open in the opposite direction to servo2. Double-check your intended open position.</div>
+    </div>
+  </div>
+
+  <div class="bug">
+    <span class="bug-sev sev-minor">MINOR</span>
+    <div class="bug-body">
+      <div class="bug-title">Second "Motor forward/backward" comment says "start" instead of "end"</div>
+      <div class="bug-desc">Minor copy-paste issue in Movement.py: <code># Motor forward/backward start</code> appears twice. The second one should say <code># end</code>.</div>
+    </div>
+  </div>
+</div>
+<script>
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    document.getElementById('root').classList.add('dark');
+  }
+</script>

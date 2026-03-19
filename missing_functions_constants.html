@@ -1,0 +1,154 @@
+
+<style>
+  .wrap { padding: 1rem 0; font-family: var(--font-sans); color: var(--color-text-primary); }
+  .section { margin-bottom: 1.6rem; }
+  .sec-title { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .6rem; padding-bottom: .3rem; border-bottom: 1px solid var(--color-border-tertiary); }
+  .item { display: flex; gap: 10px; align-items: flex-start; padding: .5rem .65rem; border-radius: var(--border-radius-md); margin-bottom: .35rem; font-size: 14px; line-height: 1.5; background: var(--color-background-secondary); }
+  .tag { font-size: 11px; font-weight: 500; padding: 2px 7px; border-radius: 20px; white-space: nowrap; margin-top: 2px; flex-shrink: 0; }
+  .t-new   { background:#E1F5EE; color:#0F6E56; }
+  .t-const { background:#EEEDFE; color:#534AB7; }
+  .t-warn  { background:#FAEEDA; color:#854F0B; }
+  .dark .t-new   { background:#04342C; color:#9FE1CB; }
+  .dark .t-const { background:#26215C; color:#CECBF6; }
+  .dark .t-warn  { background:#412402; color:#FAC775; }
+  .item-body { flex: 1; }
+  .item-title { font-weight: 500; margin-bottom: 2px; }
+  .item-desc { color: var(--color-text-secondary); font-size: 13px; }
+  code { font-family: var(--font-mono); font-size: 12px; background: var(--color-background-primary); padding: 1px 5px; border-radius: 4px; border: 1px solid var(--color-border-tertiary); }
+</style>
+<div class="wrap" id="root">
+
+  <div class="section">
+    <div class="sec-title">Constants you're missing (put these in a constants.py)</div>
+
+    <div class="item">
+      <span class="tag t-const">CONST</span>
+      <div class="item-body">
+        <div class="item-title"><code>ALIGN_TOLERANCE = 2.0</code> — alignment dead-zone in degrees</div>
+        <div class="item-desc">You hardcode <code>2</code> in <code>alignToTarget()</code>. Make it a named constant so you can tune it in one place. In competition you may want to loosen this to 5° if the robot keeps oscillating.</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <span class="tag t-const">CONST</span>
+      <div class="item-body">
+        <div class="item-title"><code>APPROACH_STOP_DIST = 0.15</code> — how close to stop from a target (metres)</div>
+        <div class="item-desc">You use magic numbers like <code>-100</code> and <code>150</code> as stop distances in several places. One named constant makes tuning this trivial.</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <span class="tag t-const">CONST</span>
+      <div class="item-body">
+        <div class="item-title"><code>SEARCH_ROTATE_STEPS</code> — steps per search sweep increment</div>
+        <div class="item-desc">You use <code>30</code>, <code>40</code>, and <code>90</code> degrees in different search loops. Pick one and name it. If the robot overshoots markers while searching, you only change it in one place.</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <span class="tag t-const">CONST</span>
+      <div class="item-body">
+        <div class="item-title">Marker ID ranges as named constants or sets</div>
+        <div class="item-desc">You repeat <code>range(100, 140)</code> and <code>range(140, 180)</code> in three different files. Define <code>ACID_IDS = range(100, 140)</code>, <code>BASE_IDS = range(140, 180)</code>, <code>ARENA_IDS = range(20)</code> once in constants.py.</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <span class="tag t-const">CONST</span>
+      <div class="item-body">
+        <div class="item-title"><code>MATCH_DURATION = 150</code> — match length in seconds</div>
+        <div class="item-desc">SR matches are 2.5 minutes. You'll want this for a time-based fallback: if you're running out of time, abort collection and return home. Use <code>robot.time()</code> against a start timestamp.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="sec-title">Functions you should add</div>
+
+    <div class="item">
+      <span class="tag t-new">VISION</span>
+      <div class="item-body">
+        <div class="item-title"><code>getMarkerType(marker_id)</code> — returns "acid", "base", or "arena"</div>
+        <div class="item-desc">You duplicate the <code>if marker.id in range(100,140)</code> chain in at least 3 places. One helper function cleans all of them up. Return an enum or string, and use it everywhere.</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <span class="tag t-new">VISION</span>
+      <div class="item-body">
+        <div class="item-title"><code>getVerticalAngle(marker)</code> — vertical angle to marker in degrees</div>
+        <div class="item-desc">You use <code>horizontal_angle</code> but never <code>vertical_angle</code>. The SR API provides it. As the robot gets very close to a marker it will rise out of frame — tracking the vertical angle lets you detect and handle this before you lose it.</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <span class="tag t-new">VISION</span>
+      <div class="item-body">
+        <div class="item-title"><code>stopMotors(robot)</code> — explicit full stop</div>
+        <div class="item-desc">You don't have a standalone "stop everything" function. Useful to call in error states, on match end, or when a marker is suddenly lost mid-approach. Just sets both motors to <code>BRAKE</code>.</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <span class="tag t-new">MOVEMENT</span>
+      <div class="item-body">
+        <div class="item-title"><code>driveToMarker(robot, target_id)</code> — combined align + approach loop</div>
+        <div class="item-desc">Right now you call <code>alignToTarget</code>, then calculate distance, then <code>moveWithChecks</code> as three separate steps. A single function that wraps all three (stop when close, re-align if drifting) would be much cleaner for the main loop.</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <span class="tag t-new">TIMING</span>
+      <div class="item-body">
+        <div class="item-title"><code>timeRemaining(robot, start_time)</code> — seconds left in match</div>
+        <div class="item-desc">Use <code>robot.time()</code> (which you're not using at all yet) to track elapsed time. This lets you add a "panic mode" — if less than 20 seconds remain, drop whatever you're doing and run home.</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <span class="tag t-new">SAFETY</span>
+      <div class="item-body">
+        <div class="item-title"><code>safeCamera(robot, retries=3)</code> — wrapper around <code>robot.camera.see()</code></div>
+        <div class="item-desc">Camera calls can occasionally return empty or throw. A wrapper that retries a few times with a short sleep between attempts will make your vision code much more robust in a noisy arena environment.</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <span class="tag t-new">DEBUG</span>
+      <div class="item-body">
+        <div class="item-title"><code>indicateError(robot)</code> / <code>indicateCollecting(robot)</code> — state LEDs</div>
+        <div class="item-desc">You have <code>indicatePowerOn</code> but no other LED state functions. Having distinct LED patterns for "searching", "aligning", "approaching", "error" makes debugging on the arena floor much easier — you can see what state the robot thinks it's in without a laptop.</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <span class="tag t-warn">MISSING</span>
+      <div class="item-body">
+        <div class="item-title">No use of <code>robot.time()</code> anywhere</div>
+        <div class="item-desc">The SR API has <code>robot.time()</code> which gives you elapsed time. You have no timeout logic at all — if the robot gets stuck in a search loop or loses a marker, it will spin forever. Every major loop should have a timeout escape: <code>if robot.time() - loop_start > 10: break</code>.</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <span class="tag t-warn">MISSING</span>
+      <div class="item-body">
+        <div class="item-title">No use of <code>robot.is_simulated</code></div>
+        <div class="item-desc">The API exposes <code>robot.is_simulated</code>. Useful for tweaking constants (e.g. tighter tolerances in sim where vision is perfect) or skipping hardware-specific calls. Worth at least logging it on startup.</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <span class="tag t-warn">MISSING</span>
+      <div class="item-body">
+        <div class="item-title">No use of <code>robot.wait_start()</code> pattern</div>
+        <div class="item-desc">You're using <code>Robot()</code> which blocks until start. The docs recommend <code>Robot(wait_for_start=False)</code> followed by hardware setup, then <code>robot.wait_start()</code>. This lets you initialise servos to their correct starting position before the match starts rather than after.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    document.getElementById('root').classList.add('dark');
+  }
+</script>
